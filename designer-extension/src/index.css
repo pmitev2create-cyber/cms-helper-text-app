@@ -88,6 +88,10 @@ button:focus-visible {
 	text-align: center;
 }
 
+.table-cms tr:last-child td {
+	border-bottom: 0;
+}
+
 .table-cms textarea {
 	font-size: 0.75em;
 }
