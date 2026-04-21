@@ -1,0 +1,13 @@
+{
+  "name": "cms-fields-helper-text",
+  "publicDir": "dist",
+  "size": "default",
+  "apiVersion": "2",
+  "telemetry": {
+    "global": {
+      "allowTelemetry": true,
+      "lastPrompted": 1776762759589,
+      "version": "1.14.0"
+    }
+  }
+}
