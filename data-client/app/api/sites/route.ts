@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { WebflowClient } from "webflow-api";
 import jwt from "../../lib/utils/jwt";
@@ -7,6 +8,7 @@ import jwt from "../../lib/utils/jwt";
     ---------------
     This route handles the GET request from the client to retrieve the list of sites associated with the user.
 */
+
 export async function GET(request: NextRequest) {
   try {
     // Clone the request since we need to read the body twice

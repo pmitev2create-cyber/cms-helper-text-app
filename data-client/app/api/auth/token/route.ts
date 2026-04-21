@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "../../../lib/utils/jwt";
 import db from "../../../lib/utils/database";
