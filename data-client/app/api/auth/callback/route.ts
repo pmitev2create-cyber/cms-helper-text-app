@@ -113,9 +113,12 @@ export async function GET(request: NextRequest) {
 					<body>
 						<script>
 							if (window.opener) {
-								window.opener.postMessage('authComplete', '*');
+								window.opener.postMessage({ type: "authComplete" }, "*");
 							}
-							window.close();
+
+							setTimeout(() => {
+								window.close();
+							}, 300);
 						</script>
 					</body>
 				</html>`,
