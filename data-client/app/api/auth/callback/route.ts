@@ -25,88 +25,117 @@ import db from "../../../lib/utils/database";
  *
  * @requires {WEBFLOW_CLIENT_ID} - Environment variable for OAuth client ID
  * @requires {WEBFLOW_CLIENT_SECRET} - Environment variable for OAuth client secret
+ * @requires {APP_URL} - Base URL used for OAuth redirect (MUST match authorize route)
  */
 export async function GET(request: NextRequest) {
-  // Get the authorization code from the request
-  const searchParams = request.nextUrl.searchParams;
-  const code = searchParams.get("code");
+	// Get the authorization code from the request
+	const searchParams = request.nextUrl.searchParams;
+	const code = searchParams.get("code");
 
-  // If no code, return a 400 error
-  if (!code) {
-    return NextResponse.json({ error: "No code provided" }, { status: 400 });
-  }
+	// Handle OAuth errors (e.g. invalid_scope)
+	const error = searchParams.get("error");
+	const errorDescription = searchParams.get("error_description");
 
-  try {
-    // Get Access Token
-    const accessToken = await WebflowClient.getAccessToken({
-      clientId: process.env.WEBFLOW_CLIENT_ID!,
-      clientSecret: process.env.WEBFLOW_CLIENT_SECRET!,
-      code: code,
-    });
+	if (error) {
+		return NextResponse.json(
+			{
+				error,
+				errorDescription: errorDescription || "Authorization failed",
+			},
+			{ status: 400 }
+		);
+	}
 
-    // Instantiate the Webflow Client
-    const webflow = new WebflowClient({ accessToken });
+	// If no code, return a 400 error
+	if (!code) {
+		return NextResponse.json({ error: "No code provided" }, { status: 400 });
+	}
 
-    // Get Site ID to pair with the access token
-    const sites = await webflow.sites.list();
-    const authInfo = await webflow.token.introspect();
+	try {
+		// 🔥 IMPORTANT: redirectUri MUST match the one used in /authorize
+		const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
 
-    // Store site authorizations in parallel
-    const siteList = sites?.sites ?? [];
-    if (siteList.length > 0) {
-      await Promise.all(
-        siteList.map((site) => db.insertSiteAuthorization(site.id, accessToken))
-      );
-    }
+		console.log("OAuth redirectUri:", redirectUri);
 
-    // Check if the authorization request came from our Webflow designer extension
-    const isAppPopup = searchParams.get("state") === "webflow_designer";
-    console.log("isAppPopup", isAppPopup);
+		// Get Access Token (FIXED: added redirectUri)
+		const accessToken = await WebflowClient.getAccessToken({
+			clientId: process.env.WEBFLOW_CLIENT_ID!,
+			clientSecret: process.env.WEBFLOW_CLIENT_SECRET!,
+			code: code,
+			redirectUri, // ✅ REQUIRED (this fixes invalid_grant)
+		});
 
-    // If the request is from a popup window, return HTML to close the window
-    if (isAppPopup) {
-      return new NextResponse(
-        `<!DOCTYPE html>
-        <html>
-          <head>
-            <title>Authorization Complete</title>
-          </head>
-          <body>
-            <script>
-              window.opener.postMessage('authComplete', '*');
-              window.close();
-            </script>
-          </body>
-        </html>`,
-        {
-          headers: {
-            "Content-Type": "text/html",
-          },
-        }
-      );
-    } else {
-      // If authorized to the Workspace - redirect to the Dashboard
-      const workspaceIds =
-        authInfo?.authorization?.authorizedTo?.workspaceIds ?? [];
-      if (workspaceIds.length > 0) {
-        return NextResponse.redirect(
-          `https:/webflow.com/dashboard?workspace=${workspaceIds[0]}`
-        );
-      } else {
-        // If authorized to the Site - redirect to the Designer Extension
-        const firstSite = siteList[0];
-        if (firstSite) {
-          return NextResponse.redirect(
-            `https://${firstSite.shortName}.design.webflow.com?app=${process.env.WEBFLOW_CLIENT_ID}`
-          );
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Error in callback:", error);
-    return NextResponse.json(
-      { error: "Failed to process authorization" },
-      { status: 500 }
-    );
-  }
+		// Instantiate the Webflow Client
+		const webflow = new WebflowClient({ accessToken });
+
+		// Get Site ID to pair with the access token
+		const sites = await webflow.sites.list();
+		const authInfo = await webflow.token.introspect();
+
+		// Store site authorizations in parallel
+		const siteList = sites?.sites ?? [];
+		if (siteList.length > 0) {
+			await Promise.all(
+				siteList.map((site) =>
+					db.insertSiteAuthorization(site.id, accessToken)
+				)
+			);
+		}
+
+		// Check if the authorization request came from our Webflow designer extension
+		const isAppPopup = searchParams.get("state") === "webflow_designer";
+		console.log("isAppPopup", isAppPopup);
+
+		// If the request is from a popup window, return HTML to close the window
+		if (isAppPopup) {
+			return new NextResponse(
+				`<!DOCTYPE html>
+				<html>
+					<head>
+						<title>Authorization Complete</title>
+					</head>
+					<body>
+						<script>
+							if (window.opener) {
+								window.opener.postMessage('authComplete', '*');
+							}
+							window.close();
+						</script>
+					</body>
+				</html>`,
+				{
+					headers: {
+						"Content-Type": "text/html",
+					},
+				}
+			);
+		} else {
+			// If authorized to the Workspace - redirect to the Dashboard
+			const workspaceIds =
+				authInfo?.authorization?.authorizedTo?.workspaceIds ?? [];
+
+			if (workspaceIds.length > 0) {
+				return NextResponse.redirect(
+					`https://webflow.com/dashboard?workspace=${workspaceIds[0]}`
+				);
+			} else {
+				// If authorized to the Site - redirect to the Designer Extension
+				const firstSite = siteList[0];
+				if (firstSite) {
+					return NextResponse.redirect(
+						`https://${firstSite.shortName}.design.webflow.com?app=${process.env.WEBFLOW_CLIENT_ID}`
+					);
+				}
+			}
+		}
+
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		console.error("Error in callback:", error);
+
+		return NextResponse.json(
+			{ error: "Failed to process authorization" },
+			{ status: 500 }
+		);
+	}
 }

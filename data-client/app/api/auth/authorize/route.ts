@@ -8,9 +8,9 @@ const scopes = [
 	"authorized_user:read",
 	"cms:read",
 	"cms:write",
-];
+].filter(Boolean);
 
-export async function GET(request: Request) {
+/* export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url);
 	const isDesigner = searchParams.get("state") === "webflow_designer";
 
@@ -21,14 +21,33 @@ export async function GET(request: Request) {
 		state: isDesigner ? "webflow_designer" : undefined,
 	});
 	
-	/* 
+	return NextResponse.redirect(authorizeUrl);
+} */
+
+export async function GET(request: Request) {
+	if (!process.env.WEBFLOW_CLIENT_ID) {
+		return NextResponse.json(
+			{ error: "Missing WEBFLOW_CLIENT_ID" },
+			{ status: 500 }
+		);
+	}
+
+	if (!process.env.APP_URL) {
+		return NextResponse.json(
+			{ error: "Missing APP_URL" },
+			{ status: 500 }
+		);
+	}
+	
+	const { searchParams } = new URL(request.url);
+	const isDesigner = searchParams.get("state") === "webflow_designer";
 	const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
 	const authorizeUrl = WebflowClient.authorizeURL({
-		scope: scopes as OauthScope[],
-		clientId: process.env.WEBFLOW_CLIENT_ID!,
+		clientId: process.env.WEBFLOW_CLIENT_ID,
 		redirectUri,
+		scope: scopes as OauthScope[],
 		state: isDesigner ? "webflow_designer" : undefined,
-	}); */
-
+	});
+	
 	return NextResponse.redirect(authorizeUrl);
 }
