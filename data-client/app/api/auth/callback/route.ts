@@ -88,17 +88,13 @@ export async function GET(request: NextRequest) {
 		);
 
 		// Store site authorizations in parallel
-		/* const siteList = sites?.sites ?? [];
+		const siteList = sites?.sites ?? [];
 
 		if (siteList.length > 0) {
 			await Promise.all(
 				siteList.map((site) => db.insertSiteAuthorization(site.id, accessToken))
 			);
-		} */
-
-		const siteList = sites?.sites ?? [];
-		
-		console.log("Skipping DB storage temporarily on Vercel", siteList.map((site) => site.id));
+		}
 
 		console.log("Site authorization records stored");
 
