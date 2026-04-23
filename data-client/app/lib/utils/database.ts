@@ -3,7 +3,7 @@ import { kv } from "@vercel/kv";
 /**
  * Database Utility (Vercel KV)
  * ---------------------------
- * Stores OAuth tokens using Vercel KV (Upstash under the hood)
+ * Stores OAuth tokens using Vercel KV
  *
  * Keys:
  * - site:{siteId} -> accessToken
@@ -50,6 +50,19 @@ export async function getAccessTokenFromUserId(
 	return token;
 }
 
+export async function getAnyUserAccessToken(): Promise<string | null> {
+	const userKeys = await kv.keys("user:*");
+
+	if (!userKeys.length) {
+		return null;
+	}
+
+	const firstKey = userKeys[0];
+	const token = await kv.get<string>(firstKey);
+
+	return token || null;
+}
+
 export async function clearDatabase(): Promise<void> {
 	const siteKeys = await kv.keys("site:*");
 	const userKeys = await kv.keys("user:*");
@@ -68,6 +81,7 @@ const database = {
 	insertUserAuthorization,
 	getAccessTokenFromSiteId,
 	getAccessTokenFromUserId,
+	getAnyUserAccessToken,
 	clearDatabase,
 };
 
