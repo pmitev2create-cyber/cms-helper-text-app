@@ -28,9 +28,6 @@ import "./App.css";
 
 function AppContent() {
 	const { sessionToken, exchangeAndVerifyIdToken } = useAuth();
-
-	console.log("sessionToken:", sessionToken);
-
 	const hasCheckedToken = useRef(false);
 
 	const [siteId, setSiteId] = useState("");
@@ -64,22 +61,9 @@ function AppContent() {
 		}
 
 		const handleAuthComplete = async (event: MessageEvent) => {
-			console.log("Received message event:", event.data, event.origin);
-
-			const isAuthComplete =
-				event.data === "authComplete" ||
-				(event.data && typeof event.data === "object" && event.data.type === "authComplete");
-
-			if (isAuthComplete) {
-				console.log("Auth complete message received");
+			if (event.data === "authComplete") {
 				localStorage.removeItem("explicitly_logged_out");
-
-				try {
-					await exchangeAndVerifyIdToken();
-					console.log("exchangeAndVerifyIdToken finished");
-				} catch (error) {
-					console.error("exchangeAndVerifyIdToken failed:", error);
-				}
+				await exchangeAndVerifyIdToken();
 			}
 		};
 

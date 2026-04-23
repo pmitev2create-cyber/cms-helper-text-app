@@ -81,6 +81,35 @@ export async function GET(request: NextRequest) {
 		const sites = await webflow.sites.list();
 		const authInfo = await webflow.token.introspect();
 
+		console.log("authInfo:", JSON.stringify(authInfo, null, 2));
+
+
+		// Store user authorization as well, so the extension can verify auth state
+		const authInfoAny = authInfo as {
+			authorization?: {
+				authorizedBy?: {
+					userId?: string;
+					id?: string;
+				};
+			};
+			user?: {
+				id?: string;
+			};
+		};
+
+		const authorizedUserId =
+			authInfoAny.authorization?.authorizedBy?.userId ||
+			authInfoAny.authorization?.authorizedBy?.id ||
+			authInfoAny.user?.id;
+
+		if (authorizedUserId) {
+			await db.insertUserAuthorization(authorizedUserId, accessToken);
+			console.log("User authorization stored:", authorizedUserId);
+		} else {
+			console.log("No authorized user ID found in authInfo");
+		}
+
+
 		console.log("Sites fetched:", sites?.sites?.length || 0);
 		console.log(
 			"Workspace IDs:",
@@ -113,12 +142,9 @@ export async function GET(request: NextRequest) {
 					<body>
 						<script>
 							if (window.opener) {
-								window.opener.postMessage({ type: "authComplete" }, "*");
+								window.opener.postMessage('authComplete', '*');
 							}
-
-							setTimeout(() => {
-								window.close();
-							}, 300);
+							window.close();
 						</script>
 					</body>
 				</html>`,
