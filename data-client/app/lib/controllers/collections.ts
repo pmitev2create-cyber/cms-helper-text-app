@@ -49,21 +49,27 @@ type WebflowGetCollectionResponse = {
 };
 
 async function getAccessToken(siteId: string): Promise<string> {
-	try {
-		return await db.getAccessTokenFromSiteId(siteId);
-	} catch {
-		const fallbackToken = await db.getAnyUserAccessToken();
+	return db.getAccessTokenFromSiteId(siteId);
+}
 
-		if (!fallbackToken) {
-			throw new Error("No access token found for site");
-		}
+function isSiteNotAuthorizedError(errorText: string): boolean {
+	return (
+		errorText.includes(`"code":"resource_not_found"`) ||
+		errorText.includes(`"code": "resource_not_found"`) ||
+		errorText.includes("The site cannot be found")
+	);
+}
 
-		console.log("Using fallback user access token for site:", siteId);
+async function handleWebflowError(siteId: string, errorText: string): Promise<never> {
+	if (isSiteNotAuthorizedError(errorText)) {
+		await db.clearSiteAuthorization(siteId);
 
-		await db.insertSiteAuthorization(siteId, fallbackToken);
-
-		return fallbackToken;
+		throw new Error(
+			"This site is not authorized for the app. Please authorize the app for this site again."
+		);
 	}
+
+	throw new Error(`Webflow API error: ${errorText}`);
 }
 
 export async function listCollections(
@@ -84,7 +90,7 @@ export async function listCollections(
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new Error(`Webflow API error: ${errorText}`);
+		await handleWebflowError(siteId, errorText);
 	}
 
 	const data = (await response.json()) as WebflowListCollectionsResponse;
@@ -115,7 +121,7 @@ export async function getCollectionDetails(
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new Error(`Webflow API error: ${errorText}`);
+		await handleWebflowError(siteId, errorText);
 	}
 
 	const data = (await response.json()) as WebflowGetCollectionResponse;
@@ -160,7 +166,7 @@ export async function updateCollectionFieldHelpText(
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new Error(`Webflow API error: ${errorText}`);
+		await handleWebflowError(siteId, errorText);
 	}
 
 	return response.json();

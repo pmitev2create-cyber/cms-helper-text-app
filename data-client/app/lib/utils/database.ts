@@ -76,12 +76,18 @@ export async function clearDatabase(): Promise<void> {
 	console.log("Database cleared");
 }
 
+export async function clearSiteAuthorization(siteId: string): Promise<void> {
+	await kv.del(`site:${siteId}`);
+	console.log("Site authorization cleared");
+}
+
 const database = {
 	insertSiteAuthorization,
 	insertUserAuthorization,
 	getAccessTokenFromSiteId,
 	getAccessTokenFromUserId,
 	getAnyUserAccessToken,
+	clearSiteAuthorization,
 	clearDatabase,
 };
 
