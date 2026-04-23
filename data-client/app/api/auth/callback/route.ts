@@ -62,6 +62,10 @@ export async function GET(request: NextRequest) {
 
 		const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
 
+		console.log("CALLBACK request.url:", request.url);
+		console.log("CALLBACK APP_URL:", JSON.stringify(process.env.APP_URL));
+		console.log("CALLBACK redirectUri:", JSON.stringify(redirectUri));
+
 		console.log("OAuth callback redirectUri:", redirectUri);
 
 		// Get Access Token

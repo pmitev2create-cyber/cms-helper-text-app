@@ -28,12 +28,18 @@ export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url);
 	const isDesigner = searchParams.get("state") === "webflow_designer";
 	const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
+
+	console.log("AUTHORIZE APP_URL:", JSON.stringify(process.env.APP_URL));
+	console.log("AUTHORIZE redirectUri:", JSON.stringify(redirectUri));
+
 	const authorizeUrl = WebflowClient.authorizeURL({
 		clientId: process.env.WEBFLOW_CLIENT_ID,
 		redirectUri,
 		scope: scopes as OauthScope[],
 		state: isDesigner ? "webflow_designer" : undefined,
 	});
+
+	console.log("AUTHORIZE URL:", authorizeUrl);
 	
 	return NextResponse.redirect(authorizeUrl);
 }
