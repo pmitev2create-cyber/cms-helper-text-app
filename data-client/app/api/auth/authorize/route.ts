@@ -4,7 +4,7 @@ import { OauthScope } from "webflow-api/api/types/OAuthScope";
 
 const scopes = [
 	"sites:read",
-	"sites:write",,
+	"sites:write",
 	"authorized_user:read",
 	"cms:read",
 	"cms:write",
